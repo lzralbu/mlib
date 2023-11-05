@@ -70,7 +70,7 @@ const string_t gx;
 	FIXME: uses of C23 typeof + extensions ?
  */
 
-#define STR1 M_OPEXTEND(STRING_OPLIST, GENTYPE(struct m_string_s *))
+#define STR1 M_OPEXTEND(STRING_OPLIST, GENTYPE(struct m_string_s *), PUSH(m_string_push_u))
 #define FLT1 (GENTYPE(float), TYPE(float), INIT(M_INIT_BASIC), INIT_SET(M_SET_BASIC), SET(M_SET_BASIC),               \
    CLEAR(M_NOTHING_DEFAULT) )
 
@@ -104,6 +104,7 @@ static void test_string(string_t p)
   init_set(p, s);
   bool b = test_empty(p);
   assert(!b);
+  push(p, 'c');
   clear(s);
   clear(d);
 

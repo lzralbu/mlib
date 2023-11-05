@@ -27,6 +27,13 @@
 
 #include "m-core.h"
 
+#ifdef _MSC_VER
+#define m_typeof(x) decltype(x)
+#else
+// Definition valid for C23, GCC, CLANG, TCC, ...
+#define m_typeof(x) typeof(x)
+#endif
+
 /* 3 levels of indirection are neeeded:
     * One level is the organisation.
     * One level is the component of the organisation.
@@ -63,6 +70,19 @@ struct m_g3neric_dummys;
 #define M_G3N_CALL_1_func_expand(gentype, op, x, oplist)                      \
   gentype: M_C(M_CALL_, op)(oplist(), M_AS_TYPE(gentype, x)),                 \
   const   gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(const gentype, x, gentype, x)),
+
+// Get a variable of the OPERATOR type of the oplist registered to the variable 'x'
+#define M_G3N_TYPE_1(op, x)                                                   \
+  _Generic( ((void)0, (x)),                                                   \
+            M_MAP2(M_G3N_TYPE_1_func, (op, x) M_G3N_REGISTERED_ITEMS() )      \
+            struct m_g3neric_dummys *: /* cannot happen */ (void)0)
+#define M_G3N_TYPE_1_func(x, oplist)                                          \
+  M_G3N_TYPE_1_func_test(M_GET_GENTYPE oplist(), M_PAIR_1 x, M_PAIR_2 x, oplist)
+#define M_G3N_TYPE_1_func_test(gentype, op, x, oplist)                        \
+  M_IF_METHOD(op, oplist())(M_G3N_TYPE_1_func_expand, M_EAT)(gentype, op, x, oplist)
+#define M_G3N_TYPE_1_func_expand(gentype, op, x, oplist)                      \
+  gentype: ( M_C(M_GET_, op)(oplist() )) { 0 },                               \
+  const   gentype: ( M_C(M_GET_, op)(oplist() ) ) { 0 },
 
 // Call the OPERATOR call of the oplist registered to the variable 'x'
 // which takes two argument (type, type)
@@ -119,10 +139,10 @@ struct m_g3neric_dummys;
 #define M_G3N_CALL_21_func(x, oplist)                                         \
   M_G3N_CALL_21_func_test(M_GET_GENTYPE oplist(),                             \
                            M_TRIPLE_1 x, M_TRIPLE_2 x, M_TRIPLE_3 x, oplist)
-#define M_G3N_CALL_21_func_test(gentype, op, x, y, oplist)         \
+#define M_G3N_CALL_21_func_test(gentype, op, x, y, oplist)                    \
   M_IF_METHOD(op, oplist())(M_G3N_CALL_21_func_expand, M_EAT)(gentype, op, x, y, oplist)
-#define M_G3N_CALL_21_func_expand(gentype, op, x, y, oplist)       \
-  gentype: M_C(M_CALL_, op)(oplist(), M_AS_TYPE(gentype, x), y), \
+#define M_G3N_CALL_21_func_expand(gentype, op, x, y, oplist)                  \
+  gentype: M_C(M_CALL_, op)(oplist(), M_AS_TYPE(gentype, x), y),              \
   const gentype: M_C(M_CALL_, op)(oplist(), M_AS_TYPE(const gentype, x), y),
 
 // Call the OPERATOR call of the oplist registered to the variable 'x'
@@ -134,13 +154,67 @@ struct m_g3neric_dummys;
 #define M_G3N_CALL_22_func(x, oplist)                                         \
   M_G3N_CALL_22_func_test(M_GET_GENTYPE oplist(),                             \
                            M_TRIPLE_1 x, M_TRIPLE_2 x, M_TRIPLE_3 x, oplist)
-#define M_G3N_CALL_22_func_test(gentype, op, x, y, oplist)         \
+#define M_G3N_CALL_22_func_test(gentype, op, x, y, oplist)                    \
   M_IF_METHOD(op, oplist())(M_G3N_CALL_22_func_expand, M_EAT)(gentype, op, x, y, oplist)
-#define M_G3N_CALL_22_func_expand(gentype, op, x, y, oplist)       \
-  gentype: M_C(M_CALL_, op)(oplist(), x, M_AS_TYPE(gentype, y)), \
+#define M_G3N_CALL_22_func_expand(gentype, op, x, y, oplist)                  \
+  gentype: M_C(M_CALL_, op)(oplist(), x, M_AS_TYPE(gentype, y)),              \
   const gentype: M_C(M_CALL_, op)(oplist(), x, M_AS_TYPE(const gentype, y)),
 
+// Call the OPERATOR call of the oplist registered to the variable 'x'
+// which takes two argument (type, keytype)
+#define M_G3N_CALL_2k(op, x, y)                                               \
+  _Generic( ((void)0, (x)),                                                   \
+            M_MAP2(M_G3N_CALL_2k_func, (op, x, y) M_G3N_REGISTERED_ITEMS() )  \
+            struct m_g3neric_dummys *: /* cannot happen */ (void) 0)
+#define M_G3N_CALL_2k_func(x, oplist)                                         \
+  M_G3N_CALL_2k_func_test(M_GET_GENTYPE oplist(),                             \
+                           M_IF_METHOD(GENTYPE, M_GET_KEY_OPLIST oplist())(M_GET_GENTYPE M_GET_KEY_OPLIST oplist(), M_GET_KEY_TYPE oplist()), \
+                           M_TRIPLE_1 x, M_TRIPLE_2 x, M_TRIPLE_3 x, oplist)
+#define M_G3N_CALL_2k_func_test(gentype, keytype, op, x, y, oplist)           \
+  M_IF_METHOD(op, oplist())(M_G3N_CALL_2k_func_expand, M_EAT)(gentype, keytype, op, x, y, oplist)
+#define M_G3N_CALL_2k_func_expand(gentype, keytype, op, x, y, oplist)         \
+  gentype: M_C(M_CALL_, op)(oplist(), M_AS_TYPE(gentype, x), M_AS_LINKED_TYPE(gentype, x, keytype, y)), \
+  const gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(const gentype, x, gentype, x), M_AS_LINKED_TYPE(const gentype, x, keytype, y)),
+
+// Call the OPERATOR call of the oplist registered to the variable 'x'
+// which takes two argument (it type, type)
+#define M_G3N_CALL_i2(op, x, y)                                               \
+  _Generic( ((void)0, (y)),                                                   \
+            M_MAP2(M_G3N_CALL_i2_func, (op, x, y) M_G3N_REGISTERED_ITEMS() )  \
+            struct m_g3neric_dummys *: /* cannot happen */ (void) 0)
+#define M_G3N_CALL_i2_func(x, oplist)                                         \
+  M_G3N_CALL_i2_func_test(M_GET_GENTYPE oplist(),                             \
+                           M_GET_IT_TYPE oplist(),                            \
+                           M_TRIPLE_1 x, M_TRIPLE_2 x, M_TRIPLE_3 x, oplist)
+#define M_G3N_CALL_i2_func_test(gentype, ittype, op, x, y, oplist)            \
+  M_IF_METHOD(op, oplist())(M_G3N_CALL_i2_func_expand, M_EAT)(gentype, ittype, op, x, y, oplist)
+#define M_G3N_CALL_i2_func_expand(gentype, ittype, op, x, y, oplist)          \
+  gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(gentype, y, ittype, x), M_AS_TYPE(gentype, y)), \
+  const gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(const gentype, y, ittype, x), M_AS_LINKED_TYPE(const gentype, y, gentype, y)),
+
+// Call the OPERATOR call of the oplist registered to the variable 'x'
+// which takes two argument (type, keytype, valuetype)
+#define M_G3N_CALL_3kv(op, x, y, z)                                           \
+  _Generic( ((void)0, (x)),                                                   \
+            M_MAP2(M_G3N_CALL_3kv_func, (op, x, y, z) M_G3N_REGISTERED_ITEMS() ) \
+            struct m_g3neric_dummys *: /* cannot happen */ (void) 0)
+#define M_G3N_CALL_3kv_func(x, oplist)                                        \
+  M_G3N_CALL_3kv_func_test(M_GET_GENTYPE oplist(),                            \
+                           M_IF_METHOD(GENTYPE, M_GET_KEY_OPLIST oplist())(M_GET_GENTYPE M_GET_KEY_OPLIST oplist(), M_GET_KEY_TYPE oplist()), \
+                           M_IF_METHOD(GENTYPE, M_GET_VALUE_OPLIST oplist())(M_GET_GENTYPE M_GET_VALUE_OPLIST oplist(), M_GET_VALUE_TYPE oplist()), \
+                           M_QUAD_1 x, M_QUAD_2 x, M_QUAD_3 x, M_QUAD_4 x, oplist)
+#define M_G3N_CALL_3kv_func_test(gentype, keytype, valuetype, op, x, y, z, oplist) \
+  M_IF_METHOD(op, oplist())(M_G3N_CALL_3kv_func_expand, M_EAT)(gentype, keytype, valuetype, op, x, y, z, oplist)
+#define M_G3N_CALL_3kv_func_expand(gentype, keytype, valuetype, op, x, y, z, oplist) \
+  gentype: M_C(M_CALL_, op)(oplist(), M_AS_TYPE(gentype, x), M_AS_LINKED_TYPE(gentype, x, keytype, y), M_AS_LINKED_TYPE(gentype, x, valuetype, z)), \
+  const gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(const gentype, x, gentype, x), M_AS_LINKED_TYPE(const gentype, x, keytype, y), M_AS_LINKED_TYPE(const gentype, x, valuetype, z) ),
+
 #define M_AS_LINKED_TYPE(typex, x, typey, y) _Generic(((void)0,(x)), typex: (y), default: (typey) {0})
+
+// Advantage: ???
+#define M_AS_IF(typex, x, typey, y)  ((typey) {_Generic((void)0,x), typex: y, default: 0)})
+
+#define M_GEN_IT_TYPE(it_type)  typeof( ((void)0, (it_type){0}))
 
 // Define generic functions
 // TODO: m_ prefix?
@@ -155,27 +229,36 @@ struct m_g3neric_dummys;
 #define equal(x, y)          M_G3N_CALL_2(EQUAL, x, y)
 #define cmp(x, y)            M_G3N_CALL_2(CMP, x, y)
 #define sort(x)              M_G3N_CALL_1(SORT, x)
-// splice_back
-// splice_at
-// it*
+// splice_back(cont, cont, it)
+// splice_at(cont, it, cont, it)
+#define it_type(x)           m_typeof(M_G3N_TYPE_1(IT_TYPE, x))
+#define sub_type(x)          m_typeof(M_G3N_TYPE_1(SUBTYPE, x))
+#define it_first(x, y)       M_G3N_CALL_i2(IT_FIST, x, y)
+#define it_last(x, y)        M_G3N_CALL_i2(IT_LAST, x, y)
+#define it_end(x, y)         M_G3N_CALL_i2(IT_END, x, y)
+// it_set(it_type, it_type)
+// it_end_p(it) + it_last_p(it) + it_next(it) + it_previous(it) + it_ref(it) + it_cref(it)
+// it_equal_p(it, it)
+// it_insert(cont, it, obj)
+// it_remove(cont, it)
 #define empty_p(x)           M_G3N_CALL_1(EMPTY_P, x)
 #define add(x, y)            M_G3N_CALL_2(ADD, x, y)
 #define sub(x, y)            M_G3N_CALL_2(SUB, x, y)
 #define mul(x, y)            M_G3N_CALL_2(MUL, x, y)
 #define div(x, y)            M_G3N_CALL_2(DIV, x, y)
 #define reset(x)             M_G3N_CALL_1(RESET, x)
-// get
-// set_at
-// safe_get
-// erase
+#define get(x, y)            M_G3N_CALL_2k(GET_KEY, x, y)
+#define set_at(x, y, z)      M_G3N_CALL_3kv(SET_KEY, x, y, z)
+#define safe_get(x, y)       M_G3N_CALL_2k(SAFE_GET_KEY, x, y)
+#define erase(x, y)          M_G3N_CALL_2k(ERASE, x, y)
 #define get_size(x)          M_G3N_CALL_1(GET_SIZE, x)
 #define push(x, y)           M_G3N_CALL_2t(PUSH, x, y)
 #define pop(x, y)            M_G3N_CALL_t2(PUSH, x, y)
 #define push_move(x, y)      M_G3N_CALL_2t(PUSH_MOVE, x, y)
 #define pop_move(x, y)       M_G3N_CALL_t2(PUSH, x, y)
 #define reverse(x)           M_G3N_CALL_1(REVERSE, x)
-//#define get_str()             
-//#define parse_str()             
+//#define get_str(string_t, cont, bool)             
+//#define parse_str(cont, const char *, const char **)             
 #define out_str(x, y)        M_G3N_CALL_22(OUT_STR, x, y)
 #define in_str(x, y)         M_G3N_CALL_21(IN_STR, x, y)
 #define out_serial(x, y)     M_G3N_CALL_22(OUT_SERIAL, x, y)
