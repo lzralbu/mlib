@@ -64,7 +64,7 @@ typedef const char **m_g3n_cstring_end;
 
 #define M_AS_LINKED_TYPE(typex, x, typey, y) _Generic(((void)0,(x)), typex: (y), default: (typey) {0})
 
-#define M_G3N_IT_TYPE(it_type)  typeof( ((void)0, (it_type){0}))
+#define M_G3N_IT_TYPE(oplist)  typeof( ((void)0, (M_GET_IT_TYPE oplist()){0}))
 
 // Translate type' into the container type if type == TYPE, IT_TYPE into its iterator
 // KEY_TYPE, VALUE_TYPE, SUBTYPE into the associated type in the oplist,
@@ -85,8 +85,8 @@ typedef const char **m_g3n_cstring_end;
   gentype: M_C(M_CALL_, op)(oplist(), M_AS_TYPE(gentype, x)),                 \
   const   gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(const gentype, x, gentype, x)),
 
-// Call the OPERATOR call of the oplist registered to the variable 'x'
-// which takes two argument according to the variable svar
+// Call the OPERATOR call of the oplist registered to the variable 'svar'
+// which takes 2 arguments of the given type
 #define M_G3N_CALL_2(op, svar, type1, var1, type2, var2) \
   _Generic( ((void)0, (svar)),                                                   \
             M_MAP2(M_G3N_CALL_2_func, (op, svar, type1, var1, type2, var2) M_G3N_REGISTERED_ITEMS() )   \
@@ -99,8 +99,8 @@ typedef const char **m_g3n_cstring_end;
   gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(gentype, svar, type1, var1), M_AS_LINKED_TYPE(gentype, svar, type2, var2) ), \
   const gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(const gentype, svar, type1, var1), M_AS_LINKED_TYPE(const gentype, svar, type2, var2) ),
 
-// Call the OPERATOR call of the oplist registered to the variable 'x'
-// which takes three argument according to the variable svar
+// Call the OPERATOR call of the oplist registered to the variable 'svar'
+// which takes 3 arguments of the given type
 #define M_G3N_CALL_3(op, svar, type1, var1, type2, var2, type3, var3) \
   _Generic( ((void)0, (svar)),                                                   \
             M_MAP2(M_G3N_CALL_3_func, (op, svar, type1, var1, type2, var2, type3, var3) M_G3N_REGISTERED_ITEMS() )   \
@@ -113,8 +113,8 @@ typedef const char **m_g3n_cstring_end;
   gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(gentype, svar, type1, var1), M_AS_LINKED_TYPE(gentype, svar, type2, var2) ), \
   const gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(const gentype, svar, type1, var1), M_AS_LINKED_TYPE(const gentype, svar, type2, var2) ),
 
-// Call the OPERATOR call of the oplist registered to the variable 'x'
-// which takes four argument according to the variable svar
+// Call the OPERATOR call of the oplist registered to the variable 'svar'
+// which takes 4 arguments of the given type
 #define M_G3N_CALL_4(op, svar, type1, var1, type2, var2, type3, var3, type4, var4) \
   _Generic( ((void)0, (svar)),                                                   \
             M_MAP2(M_G3N_CALL_4_func, (op, svar, type1, var1, type2, var2, type3, var3, type4, var4) M_G3N_REGISTERED_ITEMS() )   \
@@ -127,7 +127,25 @@ typedef const char **m_g3n_cstring_end;
   gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(gentype, svar, type1, var1), M_AS_LINKED_TYPE(gentype, svar, type2, var2) ), \
   const gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(const gentype, svar, type1, var1), M_AS_LINKED_TYPE(const gentype, svar, type2, var2) ),
 
-// Define generic functions
+// Call the OPERATOR call of the oplist registered to the variable 'x'
+// which takes one argument, it_type
+#define M_G3N_CALL_1i(op, x)                                                   \
+  _Generic( ((void)0, (x)),                                                   \
+            M_MAP2(M_G3N_CALL_1i_func, (op, x) M_G3N_REGISTERED_ITEMS() )      \
+            struct m_g3neric_dummys *: /* cannot happen */ (void)0)
+#define M_G3N_CALL_1i_func(x, oplist)                                          \
+  M_G3N_CALL_1_func_test(M_G3N_IT_TYPE(oplist), M_PAIR_1 x, M_PAIR_2 x, oplist)
+
+// Call the OPERATOR call of the oplist registered to the variable 'svar'
+// which takes 2 arguments of the given it_type
+#define M_G3N_CALL_2i(op, svar, type1, var1, type2, var2) \
+  _Generic( ((void)0, (svar)),                                                   \
+            M_MAP2(M_G3N_CALL_2i_func, (op, svar, type1, var1, type2, var2) M_G3N_REGISTERED_ITEMS() )   \
+            struct m_g3neric_dummys *: /* cannot happen */ (void) 0)
+#define M_G3N_CALL_2i_func(x, oplist)                                          \
+  M_APPLY(M_G3N_CALL_2_func_test, M_G3N_IT_TYPE(oplist), M_ID x, oplist)
+
+// Define the generic macro-functions
 // TODO: m_ prefix?
 #define init(x)              M_G3N_CALL_1(INIT, x)
 #define init_set(x, y)       M_G3N_CALL_2(INIT_SET, x, TYPE, x, TYPE, y)
@@ -140,8 +158,8 @@ typedef const char **m_g3n_cstring_end;
 #define equal(x, y)          M_G3N_CALL_2(EQUAL, x, TYPE, x , TYPE, y)
 #define cmp(x, y)            M_G3N_CALL_2(CMP, x, TYPE, x , TYPE, y)
 #define sort(x)              M_G3N_CALL_1(SORT, x)
-#define splice_back(dst, src, it) M_G3N_CALL_3(SPLICE_BACK, dst, TYPE, dst, TYPE, src, IT_TYPE, it)
-#define splice_at(dst, itdst, src, itsrc) M_G3N_CALL_4(SPLICE_BACK, dst, TYPE, dst, IT_TYPE, itdst, TYPE, src, IT_TYPE, itsrc)
+#define splice_back(d, s, i) M_G3N_CALL_3(SPLICE_BACK, d, TYPE, d, TYPE, s, IT_TYPE, i)
+#define splice_at(d, id, s, is) M_G3N_CALL_4(SPLICE_BACK, d, TYPE, d, IT_TYPE, id, TYPE, s, IT_TYPE, is)
 #define it_type(x)           m_typeof(M_G3N_TYPE_1(IT_TYPE, x))
 #define sub_type(x)          m_typeof(M_G3N_TYPE_1(SUBTYPE, x))
 #define key_type(x)          m_typeof(M_G3N_TYPE_1(KEY_TYPE, x))
@@ -149,11 +167,16 @@ typedef const char **m_g3n_cstring_end;
 #define it_first(x, y)       M_G3N_CALL_2(IT_FIST, y, IT_TYPE, x, TYPE, y)
 #define it_last(x, y)        M_G3N_CALL_i2(IT_LAST, y, IT_TYPE, x, TYPE, y)
 #define it_end(x, y)         M_G3N_CALL_i2(IT_END, y, IT_TYPE, x, TYPE, y)
-// it_set(it_type, it_type)
-// it_end_p(it) + it_last_p(it) + it_next(it) + it_previous(it) + it_ref(it) + it_cref(it)
-// it_equal_p(it, it)
-#define it_insert(cont, it, obj) M_G2N_CALL_3(IT_INSERT, cont, TYPE, cont, IT_TYPE, it, SUBTYPE, obj)
-#define it_remove(cont, it)  M_G3N_CALL_2(IT_REMOVE, cont, TYPE, cont, IT_TYPE, it)
+#define it_set(d, s)         M_G3N_CALL_2i(IT_SET, d, IT_TYPE, d, IT_TYPE, s)
+#define it_end_p(i)          M_G3N_CALL_1i(IT_END, i)
+#define it_last_p(i)         M_G3N_CALL_1i(IT_LAST, i)
+#define it_next(i)           M_G3N_CALL_1i(IT_NEXT, i)
+#define it_previous(i)       M_G3N_CALL_1i(IT_PREVIOUS, i)
+#define it_ref(i)            M_G3N_CALL_1i(IT_REF, i)
+#define it_cref(i)           M_G3N_CALL_1i(IT_CREF, i)
+#define it_equal(x, y)       M_G3N_CALL_2i(IT_EQUAL, x, IT_TYPE, x, IT_TYPE, y)
+#define it_insert(c, i, o)   M_G2N_CALL_3(IT_INSERT, c, TYPE, c, IT_TYPE, i, SUBTYPE, o)
+#define it_remove(c, i)      M_G3N_CALL_2(IT_REMOVE, c, TYPE, c, IT_TYPE, i)
 #define empty_p(x)           M_G3N_CALL_1(EMPTY_P, x)
 #define add(x, y)            M_G3N_CALL_2(ADD, x, TYPE, x, TYPE, y)
 #define sub(x, y)            M_G3N_CALL_2(SUB, x, TYPE, x, TYPE, y)
@@ -189,17 +212,5 @@ typedef const char **m_g3n_cstring_end;
 #define M_GENERIC_ORG_USER_COMP_CORE_OPLIST_6() FLT1
 #define M_GENERIC_ORG_USER_COMP_CORE_OPLIST_7() STR1
 */
-
-// Don't need to register M*LIB organisation as it is the default one
-//#define M_GENERIC_ORG_1() (MLIB)
-
-// TODO: Register CORE component
-// TODO: Register oplist to CORE component (m-string ? serial ?)
-// TODO: Add GENTYPE to all types
-//#define M_GENERIC_ORG_MLIB_COMP_1() (CORE)
-//#define M_GENERIC_ORG_MLIB_COMP_CORE_OPLIST_1() STR1
-//#define M_GENERIC_ORG_MLIB_COMP_CORE_OPLIST_5() FLT1
-
-
 
 #endif
