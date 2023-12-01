@@ -105,6 +105,7 @@ static void test_string(string_t p)
   bool b = test_empty(p);
   assert(!b);
   push(p, 'c');
+  out_str(stdout, p);
   clear(s);
   clear(d);
 
