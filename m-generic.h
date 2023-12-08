@@ -34,6 +34,12 @@
 #define m_typeof(x) typeof(x)
 #endif
 
+// Instead of using expensive M_SEQ(1,50), precompute it:
+#define M_G3N_SEQ_INT                                                         \
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,  \
+  21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, \
+  40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50
+
 /* 3 levels of indirection are neeeded:
     * One level is the organisation.
     * One level is the component of the organisation.
@@ -43,7 +49,7 @@
   Usage Domain: Nb organizations * Nb components * Nb oplists < M_MAX_NB_ARGUMENT
 */
 #define M_G3N_REGISTERED_ITEMS()                                              \
-  M_CROSS_MAP( M_G3N_IS_PRESENT3, ( comp M_CROSS_MAP(M_G3N_IS_PRESENT2, (MLIB M_MAP(M_G3N_IS_PRESENT, M_SEQ(1, 50))), ( M_SEQ(1, 50) ) ) ), ( M_SEQ(1, 50) ) )
+  M_CROSS_MAP( M_G3N_IS_PRESENT3, ( comp M_CROSS_MAP(M_G3N_IS_PRESENT2, (MLIB M_MAP(M_G3N_IS_PRESENT, M_G3N_SEQ_INT)), ( M_G3N_SEQ_INT ) ) ), ( M_G3N_SEQ_INT ) )
 
 #define M_G3N_IS_PRESENT(num)                                                 \
   M_IF(M_PARENTHESIS_P(M_C(M_GENERIC_ORG_, num)() ))(M_DEFERRED_COMMA M_ID M_C(M_GENERIC_ORG_, num)(), )
@@ -87,62 +93,62 @@ typedef const char **m_g3n_cstring_end;
 
 // Call the OPERATOR call of the oplist registered to the variable 'svar'
 // which takes 2 arguments of the given type
-#define M_G3N_CALL_2(op, svar, type1, var1, type2, var2) \
-  _Generic( ((void)0, (svar)),                                                   \
-            M_MAP2(M_G3N_CALL_2_func, (op, svar, type1, var1, type2, var2) M_G3N_REGISTERED_ITEMS() )   \
+#define M_G3N_CALL_2(op, svar, type1, var1, type2, var2)                      \
+  _Generic( ((void)0, (svar)),                                                \
+            M_MAP2(M_G3N_CALL_2_func, (op, svar, type1, var1, type2, var2) M_G3N_REGISTERED_ITEMS() ) \
             struct m_g3neric_dummys *: /* cannot happen */ (void) 0)
 #define M_G3N_CALL_2_func(x, oplist)                                          \
   M_APPLY(M_G3N_CALL_2_func_test, M_GET_GENTYPE oplist(), M_ID x, oplist)
-#define M_G3N_CALL_2_func_test(gentype, op, svar, type1, var1, type2, var2, oplist)                     \
+#define M_G3N_CALL_2_func_test(gentype, op, svar, type1, var1, type2, var2, oplist) \
   M_IF_METHOD(op, oplist())(M_G3N_CALL_2_func_expand, M_EAT)(gentype, op, svar, M_G3N_TYPE(type1, oplist), var1, M_G3N_TYPE(type2, oplist), var2, oplist)
-#define M_G3N_CALL_2_func_expand(gentype, op, svar, type1, var1, type2, var2, oplist)                   \
+#define M_G3N_CALL_2_func_expand(gentype, op, svar, type1, var1, type2, var2, oplist) \
   gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(gentype, svar, type1, var1), M_AS_LINKED_TYPE(gentype, svar, type2, var2) ), \
   const gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(const gentype, svar, type1, var1), M_AS_LINKED_TYPE(const gentype, svar, type2, var2) ),
 
 // Call the OPERATOR call of the oplist registered to the variable 'svar'
 // which takes 3 arguments of the given type
-#define M_G3N_CALL_3(op, svar, type1, var1, type2, var2, type3, var3) \
-  _Generic( ((void)0, (svar)),                                                   \
-            M_MAP2(M_G3N_CALL_3_func, (op, svar, type1, var1, type2, var2, type3, var3) M_G3N_REGISTERED_ITEMS() )   \
+#define M_G3N_CALL_3(op, svar, type1, var1, type2, var2, type3, var3)         \
+  _Generic( ((void)0, (svar)),                                                \
+            M_MAP2(M_G3N_CALL_3_func, (op, svar, type1, var1, type2, var2, type3, var3) M_G3N_REGISTERED_ITEMS() ) \
             struct m_g3neric_dummys *: /* cannot happen */ (void) 0)
 #define M_G3N_CALL_3_func(x, oplist)                                          \
   M_APPLY(M_G3N_CALL_3_func_test, M_GET_GENTYPE oplist(), M_ID x, oplist)
-#define M_G3N_CALL_3_func_test(gentype, op, svar, type1, var1, type2, var2, type3, var3, oplist)                     \
+#define M_G3N_CALL_3_func_test(gentype, op, svar, type1, var1, type2, var2, type3, var3, oplist) \
   M_IF_METHOD(op, oplist())(M_G3N_CALL_3_func_expand, M_EAT)(gentype, op, svar, M_G3N_TYPE(type1, oplist), var1, M_G3N_TYPE(type2, oplist), var2, M_G3N_TYPE(type3, oplist), var3, oplist)
-#define M_G3N_CALL_3_func_expand(gentype, op, svar, type1, var1, type2, var2, oplist)                   \
+#define M_G3N_CALL_3_func_expand(gentype, op, svar, type1, var1, type2, var2, oplist) \
   gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(gentype, svar, type1, var1), M_AS_LINKED_TYPE(gentype, svar, type2, var2) ), \
   const gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(const gentype, svar, type1, var1), M_AS_LINKED_TYPE(const gentype, svar, type2, var2) ),
 
 // Call the OPERATOR call of the oplist registered to the variable 'svar'
 // which takes 4 arguments of the given type
 #define M_G3N_CALL_4(op, svar, type1, var1, type2, var2, type3, var3, type4, var4) \
-  _Generic( ((void)0, (svar)),                                                   \
-            M_MAP2(M_G3N_CALL_4_func, (op, svar, type1, var1, type2, var2, type3, var3, type4, var4) M_G3N_REGISTERED_ITEMS() )   \
+  _Generic( ((void)0, (svar)),                                                \
+            M_MAP2(M_G3N_CALL_4_func, (op, svar, type1, var1, type2, var2, type3, var3, type4, var4) M_G3N_REGISTERED_ITEMS() ) \
             struct m_g3neric_dummys *: /* cannot happen */ (void) 0)
 #define M_G3N_CALL_4_func(x, oplist)                                          \
   M_APPLY(M_G3N_CALL_4_func_test, M_GET_GENTYPE oplist(), M_ID x, oplist)
-#define M_G3N_CALL_4_func_test(gentype, op, svar, type1, var1, type2, var2, type3, var3, type4, var4, oplist)                     \
+#define M_G3N_CALL_4_func_test(gentype, op, svar, type1, var1, type2, var2, type3, var3, type4, var4, oplist) \
   M_IF_METHOD(op, oplist())(M_G3N_CALL_4_func_expand, M_EAT)(gentype, op, svar, M_G3N_TYPE(type1, oplist), var1, M_G3N_TYPE(type2, oplist), var2, M_G3N_TYPE(type3, oplist), var3, M_G3N_TYPE(type4, oplist), var4, oplist)
-#define M_G3N_CALL_4_func_expand(gentype, op, svar, type1, var1, type2, var2, oplist)                   \
+#define M_G3N_CALL_4_func_expand(gentype, op, svar, type1, var1, type2, var2, oplist) \
   gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(gentype, svar, type1, var1), M_AS_LINKED_TYPE(gentype, svar, type2, var2) ), \
   const gentype: M_C(M_CALL_, op)(oplist(), M_AS_LINKED_TYPE(const gentype, svar, type1, var1), M_AS_LINKED_TYPE(const gentype, svar, type2, var2) ),
 
 // Call the OPERATOR call of the oplist registered to the variable 'x'
 // which takes one argument, it_type
-#define M_G3N_CALL_1i(op, x)                                                   \
+#define M_G3N_CALL_1i(op, x)                                                  \
   _Generic( ((void)0, (x)),                                                   \
-            M_MAP2(M_G3N_CALL_1i_func, (op, x) M_G3N_REGISTERED_ITEMS() )      \
+            M_MAP2(M_G3N_CALL_1i_func, (op, x) M_G3N_REGISTERED_ITEMS() )     \
             struct m_g3neric_dummys *: /* cannot happen */ (void)0)
-#define M_G3N_CALL_1i_func(x, oplist)                                          \
+#define M_G3N_CALL_1i_func(x, oplist)                                         \
   M_G3N_CALL_1_func_test(M_G3N_IT_TYPE(oplist), M_PAIR_1 x, M_PAIR_2 x, oplist)
 
 // Call the OPERATOR call of the oplist registered to the variable 'svar'
 // which takes 2 arguments of the given it_type
-#define M_G3N_CALL_2i(op, svar, type1, var1, type2, var2) \
-  _Generic( ((void)0, (svar)),                                                   \
-            M_MAP2(M_G3N_CALL_2i_func, (op, svar, type1, var1, type2, var2) M_G3N_REGISTERED_ITEMS() )   \
+#define M_G3N_CALL_2i(op, svar, type1, var1, type2, var2)                     \
+  _Generic( ((void)0, (svar)),                                                \
+            M_MAP2(M_G3N_CALL_2i_func, (op, svar, type1, var1, type2, var2) M_G3N_REGISTERED_ITEMS() ) \
             struct m_g3neric_dummys *: /* cannot happen */ (void) 0)
-#define M_G3N_CALL_2i_func(x, oplist)                                          \
+#define M_G3N_CALL_2i_func(x, oplist)                                         \
   M_APPLY(M_G3N_CALL_2_func_test, M_G3N_IT_TYPE(oplist), M_ID x, oplist)
 
 // Define the generic macro-functions
