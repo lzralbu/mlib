@@ -29,10 +29,13 @@
 
 #ifdef _MSC_VER
 #define m_typeof(x) decltype(x)
+#elif defined(__GNUC__)   
+#define m_typeof(x) __typeof__(x)
 #else
-// Definition valid for C23, GCC, CLANG, TCC, ...
+// Definition valid for C23, TCC
 #define m_typeof(x) typeof(x)
 #endif
+
 
 // Instead of using expensive M_SEQ(1,50), precompute it:
 #define M_G3N_SEQ_INT                                                         \
@@ -70,7 +73,7 @@ typedef const char **m_g3n_cstring_end;
 
 #define M_AS_LINKED_TYPE(typex, x, typey, y) _Generic(((void)0,(x)), typex: (y), default: (typey) {0})
 
-#define M_G3N_IT_TYPE(oplist)  typeof( ((void)0, (M_GET_IT_TYPE oplist()){0}))
+#define M_G3N_IT_TYPE(oplist)  m_typeof( ((void)0, (M_GET_IT_TYPE oplist()){0}))
 
 // Translate type' into the container type if type == TYPE, IT_TYPE into its iterator
 // KEY_TYPE, VALUE_TYPE, SUBTYPE into the associated type in the oplist,
@@ -151,6 +154,20 @@ typedef const char **m_g3n_cstring_end;
 #define M_G3N_CALL_2i_func(x, oplist)                                         \
   M_APPLY(M_G3N_CALL_2_func_test, M_G3N_IT_TYPE(oplist), M_ID x, oplist)
 
+// Create a variable of type OPERATOR call of the oplist registered to the variable 'x'
+#define M_G3N_TYPE_1(op, x)                                                   \
+  _Generic( ((void)0, (x)),                                                   \
+            M_MAP2(M_G3N_TYPE_1_func, (op, x) M_G3N_REGISTERED_ITEMS() )      \
+            struct m_g3neric_dummys *: /* cannot happen */ (void)0)
+#define M_G3N_TYPE_1_func(x, oplist)                                          \
+  M_G3N_TYPE_1_func_test(M_GET_GENTYPE oplist(), M_PAIR_1 x, M_PAIR_2 x, oplist)
+#define M_G3N_TYPE_1_func_test(gentype, op, x, oplist)                        \
+  M_IF_METHOD(op, oplist())(M_G3N_TYPE_1_func_expand, M_EAT)(gentype, op, x, oplist)
+#define M_G3N_TYPE_1_func_expand(gentype, op, x, oplist)                      \
+  gentype: (M_G3N_TYPE(op, oplist)){0},                 \
+  const gentype: (M_G3N_TYPE(op, oplist)){0},
+
+
 // Define the generic macro-functions
 // TODO: m_ prefix?
 #define init(x)              M_G3N_CALL_1(INIT, x)
@@ -170,12 +187,12 @@ typedef const char **m_g3n_cstring_end;
 #define sub_type(x)          m_typeof(M_G3N_TYPE_1(SUBTYPE, x))
 #define key_type(x)          m_typeof(M_G3N_TYPE_1(KEY_TYPE, x))
 #define value_type(x)        m_typeof(M_G3N_TYPE_1(VALUE_TYPE, x))
-#define it_first(x, y)       M_G3N_CALL_2(IT_FIST, y, IT_TYPE, x, TYPE, y)
+#define it_first(x, y)       M_G3N_CALL_2(IT_FIRST, y, IT_TYPE, x, TYPE, y)
 #define it_last(x, y)        M_G3N_CALL_i2(IT_LAST, y, IT_TYPE, x, TYPE, y)
 #define it_end(x, y)         M_G3N_CALL_i2(IT_END, y, IT_TYPE, x, TYPE, y)
 #define it_set(d, s)         M_G3N_CALL_2i(IT_SET, d, IT_TYPE, d, IT_TYPE, s)
-#define it_end_p(i)          M_G3N_CALL_1i(IT_END, i)
-#define it_last_p(i)         M_G3N_CALL_1i(IT_LAST, i)
+#define it_end_p(i)          M_G3N_CALL_1i(IT_END_P, i)
+#define it_last_p(i)         M_G3N_CALL_1i(IT_LAST_P, i)
 #define it_next(i)           M_G3N_CALL_1i(IT_NEXT, i)
 #define it_previous(i)       M_G3N_CALL_1i(IT_PREVIOUS, i)
 #define it_ref(i)            M_G3N_CALL_1i(IT_REF, i)
@@ -206,10 +223,25 @@ typedef const char **m_g3n_cstring_end;
 #define out_serial(x, y)     M_G3N_CALL_2(OUT_SERIAL, y, m_serial_write_t, x, TYPE, y)
 #define in_serial(x, y)      M_G3N_CALL_2(IN_SERIAL, x, TYPE, x, m_serial_read_t, y)
 
+// for each
+#define each(item, container)                                                 \
+  M_G3N_EACHI(item, container, M_C(m_local_it_, __LINE__), M_C(local_pass_, __LINE__))
+
+#define M_G3N_EACHI(item, container, l_it, l_pass)                            \
+  (bool l_pass = true; l_pass; l_pass = false)                                \
+  for(sub_type(container) *item; l_pass ; l_pass = false)                     \
+    for(it_type(container) l_it; l_pass ; l_pass = false)                      \
+      for(it_first(l_it, container) ;                                         \
+          !it_end_p(l_it)                                                     \
+            && (item = it_ref(l_it), true) ;                                  \
+          it_next(l_it))
+
 // TODO: init_with ? How to handle the different type of parameters ?
 // TODO: emplace ?
-// TODO: for each(x, cont) { }
 // TODO: Integrate in M_PRINT ?
+// TODO: How to handle -Wunreachable-code-generic-assoc which is enabled automatically in CLANG 15?
+// Generate warning: due to lvalue conversion of the controlling expression, association of type 'const float' will never be selected because it is qualified [-Wunreachable-code-generic-assoc]
+// Pragma if CLANG ?
 
 /* User code has to register oplists :
 
